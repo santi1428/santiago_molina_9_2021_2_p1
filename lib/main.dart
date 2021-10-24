@@ -125,11 +125,17 @@ class _CharactersListState extends State<CharactersList> {
   }
 
   void fetchData() async {
-    if (await checkInternetConnection()) {
+    if (_internetConnection) {
       var url =
           Uri.https('hp-api.herokuapp.com', '/api/characters', {'q': '{http}'});
       // Await the http get response, then decode the json-formatted response.
-      var response = await http.get(url);
+      late var response;
+      try {
+        response = await http.get(url);
+      } on SocketException catch (_) {
+        return;
+      }
+
       if (response.statusCode == 200) {
         setState(() {
           _listOfCharacters = jsonDecode(response.body);
@@ -272,6 +278,7 @@ class _CharactersListState extends State<CharactersList> {
 
   @override
   Widget build(BuildContext context) {
+    checkInternetConnection();
     fetchData();
     return Scaffold(
       appBar: AppBar(
