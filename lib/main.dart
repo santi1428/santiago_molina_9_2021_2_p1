@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'models/character.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() {
   runApp(const HarryPotterApp());
@@ -34,25 +36,47 @@ class _CharactersListState extends State<CharactersList> {
   List<dynamic> _listOfCharacters = [];
   bool _isLoadingData = true;
   String _listOfCharactersLength = 'Loading';
+  bool _internetConnection = true;
+
+  Future<bool> hasNetwork() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> checkInternetConnection() async {
+    if (await hasNetwork()) {
+      return true;
+    }
+    setState(() {
+      _internetConnection = false;
+    });
+    return false;
+  }
 
   void fetchData() async {
-    var url =
-        Uri.https('hp-api.herokuapp.com', '/api/characters', {'q': '{http}'});
-    // Await the http get response, then decode the json-formatted response.
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      setState(() {
-        _listOfCharacters = jsonDecode(response.body);
-        _isLoadingData = false;
-        _listOfCharactersLength = _listOfCharacters.length.toString();
-      });
-    } else {
-      print('Request failed with status: ${response.statusCode}.');
-      setState(() {
-        _listOfCharacters = [];
-        _isLoadingData = false;
-        _listOfCharactersLength = '0';
-      });
+    if (await checkInternetConnection()) {
+      var url =
+          Uri.https('hp-api.herokuapp.com', '/api/characters', {'q': '{http}'});
+      // Await the http get response, then decode the json-formatted response.
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        setState(() {
+          _listOfCharacters = jsonDecode(response.body);
+          _isLoadingData = false;
+          _listOfCharactersLength = _listOfCharacters.length.toString();
+        });
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        setState(() {
+          _listOfCharacters = [];
+          _isLoadingData = false;
+          _listOfCharactersLength = '0';
+        });
+      }
     }
   }
 
@@ -127,14 +151,27 @@ class _CharactersListState extends State<CharactersList> {
           )
         : Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const <Widget>[
-              Text('Loading characters'),
+            children: <Widget>[
+              SizedBox(
+                height: 10,
+              ),
+              _internetConnection == false
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const <Widget>[
+                        Icon(Icons.signal_wifi_connected_no_internet_4),
+                        SizedBox(
+                          width: 10,
+                        ),
+                        Text('Internet connection is required'),
+                      ],
+                    )
+                  : const Text('Loading characters'),
             ],
           );
   }
 
   Widget header() {
-    fetchData();
     return Container(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -144,7 +181,7 @@ class _CharactersListState extends State<CharactersList> {
             style: TextStyle(fontSize: 18),
           ),
           Text(
-            _listOfCharactersLength,
+            _internetConnection ? _listOfCharactersLength : '0',
             style: const TextStyle(fontSize: 18),
           )
         ],
@@ -155,6 +192,7 @@ class _CharactersListState extends State<CharactersList> {
 
   @override
   Widget build(BuildContext context) {
+    fetchData();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xff212529),
