@@ -11,7 +11,7 @@ class Character {
   String ancestry = '';
   String eyeColour = '';
   String hairColour = '';
-  Wand wand = Wand(wood: '', core: '', length: 'No definido');
+  Wand wand = Wand(wood: '', core: '', length: 'Not defined');
   String patronus = '';
   bool hogwartsStudent = false;
   bool hogwartsStaff = false;
@@ -47,7 +47,7 @@ class Character {
     house = json['house'];
     dateOfBirth = json['dateOfBirth'];
     yearOfBirth = json['yearOfBirth'] == ''
-        ? 'No definido'
+        ? 'Not defined'
         : json['yearOfBirth'].toString();
     wizard = json['wizard'];
     ancestry = json['ancestry'];
@@ -55,8 +55,8 @@ class Character {
     hairColour = json['hairColour'];
     wand = json['wand'] != null
         ? Wand.fromJson(json['wand'])
-        : Wand(wood: '', core: '', length: 'No definido');
-    patronus = json['patronus'];
+        : Wand(wood: '', core: '', length: 'Not defined');
+    patronus = json['patronus'] == '' ? 'Not defined' : json['patronus'];
     hogwartsStudent = json['hogwartsStudent'];
     hogwartsStaff = json['hogwartsStaff'];
     actor = json['actor'];

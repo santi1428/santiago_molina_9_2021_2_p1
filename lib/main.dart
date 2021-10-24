@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'models/character.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'character_details.dart';
 
 void main() {
   runApp(const HarryPotterApp());
@@ -37,6 +36,8 @@ class _CharactersListState extends State<CharactersList> {
   bool _isLoadingData = true;
   String _listOfCharactersLength = 'Loading';
   bool _internetConnection = true;
+  bool _isFiltered = false;
+  String _search = '';
 
   Future<bool> hasNetwork() async {
     try {
@@ -55,6 +56,72 @@ class _CharactersListState extends State<CharactersList> {
       _internetConnection = false;
     });
     return false;
+  }
+
+  void _removeFilter() {
+    setState(() {
+      _isFiltered = false;
+      _search = '';
+    });
+  }
+
+  void _filter() {
+    if (_search != '') {
+      setState(() {
+        _isFiltered = true;
+      });
+    } else {
+      setState(() {
+        _isFiltered = false;
+      });
+    }
+    Navigator.of(context).pop();
+  }
+
+  void _showFilter() {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            title: const Text('Filter caracters'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text('Type the character\'s name'),
+                const SizedBox(
+                  height: 10,
+                ),
+                TextField(
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                        hintText: 'Character\'s name',
+                        labelText: 'Search',
+                        suffixIcon: Icon(Icons.search)),
+                    onChanged: (value) {
+                      setState(() {
+                        _search = value;
+                      });
+                    },
+                    controller: TextEditingController(text: _search))
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _search = '';
+                    });
+                  },
+                  child: const Text('Cancel')),
+              TextButton(
+                  onPressed: () => _filter(), child: const Text('Filter')),
+            ],
+          );
+        });
   }
 
   void fetchData() async {
@@ -84,12 +151,25 @@ class _CharactersListState extends State<CharactersList> {
     return !_isLoadingData
         ? Expanded(
             child: ListView(
-              children: _listOfCharacters.map((c) {
+              children: _listOfCharacters
+                  .where((c) => Character.fromJson(c)
+                      .name
+                      .toLowerCase()
+                      .contains(_search))
+                  .map((c) {
                 Character character = Character.fromJson(c);
                 return Container(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Card(
                     child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  CharacterDetails(character: character)),
+                        );
+                      },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
@@ -152,7 +232,7 @@ class _CharactersListState extends State<CharactersList> {
         : Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              SizedBox(
+              const SizedBox(
                 height: 10,
               ),
               _internetConnection == false
@@ -195,9 +275,16 @@ class _CharactersListState extends State<CharactersList> {
     fetchData();
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xff212529),
-        title: const Center(child: Text('Harry Potter\'s characters')),
-      ),
+          backgroundColor: const Color(0xff212529),
+          title: const Center(child: Text('Harry Potter\'s characters')),
+          actions: <Widget>[
+            _isFiltered
+                ? IconButton(
+                    onPressed: _removeFilter,
+                    icon: const Icon(Icons.filter_none))
+                : IconButton(
+                    onPressed: _showFilter, icon: const Icon(Icons.filter_alt))
+          ]),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[header(), listOfCharacters()],
